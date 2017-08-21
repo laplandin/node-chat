@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/main.css">
+    <meta name="robots" content="noindex,nofollow"/>
+    <title>Приватная комната</title>
+</head>
+<body>
+<div class="demo">
+    <h1>Добро пожаловать. Снова.</h1>
+    <!-- <span>ты можешь поделиться ссылкой, чтобы пригласить ещё кого-нибудь</span> -->
+
+    <div class="chat">
+        <div class="messages" id="messages"></div>
+
+        <div class="panel">
+            <span class="nick"></span>
+            <input type="text" name="message_text" id="message_text">
+            <button type="button" id="message_btn">Отправить</button>
+        </div>
+    </div>
+</div>
+<div class="users-online-wrapper">
+  <h2>Сейчас онлайн:</h2>
+  <ul class="users-online"></ul>
+</div>
+<div class="users-online-wrapper">
+  <h2>Сейчас в этом чате:</h2>
+  <ul class="roommates-online"></ul>
+</div>
+<script src="/jquery.min.js"></script>
+<script src="http://localhost:8008/socket.io/socket.io.js"></script>
+<script type="text/javascript" src="/index.js"></script>
+</body>
+</html>
