@@ -97,29 +97,48 @@ $(document).ready(function () {
         }
     });
 
+    socket.on('invitation', function(data) {
+       if (confirm('вас приглашает в беседу ' + data.invitator)) {
+           socket.emit('invitation_ok', {});
+       } else {
+           socket.emit('invitation_fail', {});
+       }
+    });
+
     function renderOnlineUsers(roommates) {
+        var list;
         if (roommates) {
-            var list = $('.roommates-online').html('');
+            list = $('.roommates-online').html('');
             roommates.forEach(function(item) {
-                var str = '<li class="roommate-online">' + item + '</li>';
-                list.append(str);
+                var str = '<li class="roommate-online"> <a class="user-link" href="#">' + item + '</a> </li>';
+                var newListElement = $(str).data('username', item);
+                addInviteHandler(newListElement, 'leave');
+                list.append(newListElement);
             });
         } else {
-            var list = $('.users-online').html('');
+            list = $('.users-online').html('');
             usersOnline.forEach(function(item) {
-                var str = '<li class="user-online"> <a class="user-link" href="#">' + item + '</a> </li>';
-                var newUserElement = $(str).data('username', item);
-                addInviteHandler(newUserElement);
-                list.append(newUserElement);
+                var srt = '';
+                var element;
+                if (window.location.href.match(/room/)) {
+                    str = '<li class="user-online"> <a class="user-link" href="#">' + item + '</a> </li>';
+                    element = $(str).data('username', item);
+                    addInviteHandler(element, 'invite');
+                } else {
+                    str = '<li class="user-online">' + item + '</li>';
+                    element = $(str);
+                }
+                list.append(element);
             });
         }
     }
 
-    function addInviteHandler(elem) {
+    function addInviteHandler(elem, ev) {
         elem.on('click', function(e) {
             e.preventDefault();
-            var invitedPerson = $(this).data('username');
-            socket.emit('invite', {'invitedPerson' : invitedPerson});
+            var person = $(this).data('username');
+            console.log(person);
+            socket.emit(ev, {person : person, invitator: name});
         });
     }
 

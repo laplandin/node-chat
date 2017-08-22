@@ -21,7 +21,17 @@ module.exports = function(app, io) {
         return roommatesList;
     }
 
+    function getSocketByUsername(username) {
+        for (socket in io.sockets.connected) {
+            if (io.sockets.connected[socket].handshake.query.name == username) {
+                return io.sockets.connected[socket];
+            }
+        }
+    }
+
     io.sockets.on('connection', function(client) {
+
+        //for room
         if (client.handshake.query.roomID) {
             var roomID = client.handshake.query.roomID;
             var userName = client.handshake.query.name;
@@ -35,7 +45,15 @@ module.exports = function(app, io) {
 
             client.emit('get_online_roommates', getClientsFromRoom(roomID));
             client.to(roomID).emit('get_online_roommates', getClientsFromRoom(roomID));
+
+            client.on('invite', function(data) {
+                var invitedSocket = getSocketByUsername(data.person);
+                console.log(invitedSocket.id);
+                invitedSocket.emit('invitation', {invitator : data.invitator});
+            });
         } else {
+
+        //for common chat
             state.clientsOnline.push(client);
             client.emit('get_online_users', state.getUserNames());
 
@@ -63,6 +81,8 @@ module.exports = function(app, io) {
                     client.disconnect();
                 }
             });
+
+
         }
     });
 };
