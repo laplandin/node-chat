@@ -3,29 +3,26 @@ $(document).ready(function () {
     var socket;
     var url = 'http://localhost:8008';
     var usersOnline = [];
-    var isInvited = false;
+    // var isInvited = false;
+    var href = decodeURIComponent(window.location.href);
+    var pathname = decodeURIComponent(window.location.pathname);
 
-    if (/room/.test(window.location.href)) {
-        name = localStorage.getItem('name');
-        // if (!name) getUserName();
-        var roomID = Number(window.location.pathname.match(/\/room\/(\d+)$/)[1]);
+    if (/room/.test(href)) {
+        var roomID = Number(pathname.match(/\/room\/(\d+)/)[1]);
     try {
-        name = window.location.href.match(/\?.+/)[0];
+        name = href.match(/\?.+/)[0];
         console.log(name);
         name = name.slice(1);
-        isInvited = true;
-    } catch(e) {
 
-        alert('кажется вас сюда никто не приглашал');
-        $('body').html('<h1>Страница заблокирована до выяснения обстоятельств</h1>');
-    }
-
-    if (isInvited) {
         socket = io.connect(url, {query: 'name=' + name + '&roomID=' + roomID});
 
         socket.on('get_online_roommates', function(roommatesList) {
             renderOnlineUsers(roommatesList);
         });
+    } catch(e) {
+
+        alert('кажется вас сюда никто не приглашал');
+        $('body').html('<h1>Страница заблокирована до выяснения обстоятельств</h1>');
     }
 
     } else  {
@@ -99,9 +96,11 @@ $(document).ready(function () {
 
     socket.on('invitation', function(data) {
        if (confirm('вас приглашает в беседу ' + data.invitator)) {
-           socket.emit('invitation_ok', {});
+           window.location.pathname = '/room/' + data.roomID + '?' + name;
+           // socket.emit('invitation_response', {status: true});
        } else {
-           socket.emit('invitation_fail', {});
+           return;
+           // socket.emit('invitation_response', {status: false});
        }
     });
 
@@ -138,7 +137,7 @@ $(document).ready(function () {
             e.preventDefault();
             var person = $(this).data('username');
             console.log(person);
-            socket.emit(ev, {person : person, invitator: name});
+            socket.emit(ev, {person : person, invitator: name, roomID: roomID});
         });
     }
 

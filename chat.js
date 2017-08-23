@@ -47,17 +47,32 @@ module.exports = function(app, io) {
             client.to(roomID).emit('get_online_roommates', getClientsFromRoom(roomID));
 
             client.on('invite', function(data) {
+                var self = this;
+                console.log(self.rooms);
+                var roomID = data.roomID;
                 var invitedSocket = getSocketByUsername(data.person);
                 console.log(invitedSocket.id);
-                invitedSocket.emit('invitation', {invitator : data.invitator});
+                invitedSocket.emit('invitation', {invitator : data.invitator, roomID: roomID});
+            });
+
+            client.on('message', function(message) {
+
+                try {
+                    client.to(roomID).emit('message', message);
+                    client.emit('message', message);
+                } catch (e) {
+                    console.log(e);
+                    client.disconnect();
+                }
             });
         } else {
 
         //for common chat
             state.clientsOnline.push(client);
+            client.join('common');
             client.emit('get_online_users', state.getUserNames());
 
-            client.broadcast.emit('change_client', {
+            client.to('common').emit('change_client', {
                 name : client.handshake.query.name,
                 connect : true
             });
@@ -65,7 +80,7 @@ module.exports = function(app, io) {
             client.on('disconnect', function(arg) {
                 var i = state.clientsOnline.indexOf(client);
                 state.clientsOnline.splice(i, 1);
-                client.broadcast.emit('change_client', {
+                client.to('common').emit('change_client', {
                     name : client.handshake.query.name,
                     connect : false
                 });
@@ -74,8 +89,8 @@ module.exports = function(app, io) {
             client.on('message', function(message) {
 
                 try {
+                    client.to('common').emit('message', message);
                     client.emit('message', message);
-                    client.broadcast.emit('message', message);
                 } catch (e) {
                     console.log(e);
                     client.disconnect();
