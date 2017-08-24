@@ -15,6 +15,7 @@ module.exports = function(app, io) {
         var roommatesList = [];
         for (socket in io.sockets.adapter.rooms[roomName].sockets) {
             var userName = io.sockets.connected[socket].handshake.query.name;
+            // if (user === userName) continue;
             roommatesList.push(userName);
         }
         console.log(roommatesList);
@@ -23,7 +24,7 @@ module.exports = function(app, io) {
 
     function getSocketByUsername(username) {
         for (socket in io.sockets.connected) {
-            if (io.sockets.connected[socket].handshake.query.name == username) {
+            if (io.sockets.connected[socket].handshake.query.name === username) {
                 return io.sockets.connected[socket];
             }
         }
@@ -38,6 +39,8 @@ module.exports = function(app, io) {
 
             state.rooms.push(roomID);
             client.join(roomID);
+            // console.log()
+            if (getClientsFromRoom(roomID).length === 1) client.emit('privilige', {isAdmin: true});
             console.log(io);
 
             client.emit('get_online_users', state.getUserNames());
@@ -53,6 +56,12 @@ module.exports = function(app, io) {
                 var invitedSocket = getSocketByUsername(data.person);
                 console.log(invitedSocket.id);
                 invitedSocket.emit('invitation', {invitator : data.invitator, roomID: roomID});
+            });
+
+            client.on('leave', function(data) {
+               var deletedSocket = getSocketByUsername(data.person);
+               deletedSocket.leave(data.roomID);
+               deletedSocket.emit('notify_leave', {});
             });
 
             client.on('message', function(message) {
@@ -72,7 +81,7 @@ module.exports = function(app, io) {
             client.join('common');
             client.emit('get_online_users', state.getUserNames());
 
-            client.to('common').emit('change_client', {
+            client.broadcast.emit('change_client', {
                 name : client.handshake.query.name,
                 connect : true
             });
@@ -80,7 +89,7 @@ module.exports = function(app, io) {
             client.on('disconnect', function(arg) {
                 var i = state.clientsOnline.indexOf(client);
                 state.clientsOnline.splice(i, 1);
-                client.to('common').emit('change_client', {
+                client.broadcast.emit('change_client', {
                     name : client.handshake.query.name,
                     connect : false
                 });
@@ -96,8 +105,6 @@ module.exports = function(app, io) {
                     client.disconnect();
                 }
             });
-
-
         }
     });
 };

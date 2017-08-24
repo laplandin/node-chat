@@ -3,7 +3,7 @@ $(document).ready(function () {
     var socket;
     var url = 'http://localhost:8008';
     var usersOnline = [];
-    // var isInvited = false;
+    var isAdmin = false;
     var href = decodeURIComponent(window.location.href);
     var pathname = decodeURIComponent(window.location.pathname);
 
@@ -96,33 +96,69 @@ $(document).ready(function () {
 
     socket.on('invitation', function(data) {
        if (confirm('вас приглашает в беседу ' + data.invitator)) {
-           window.location.pathname = '/room/' + data.roomID + '?' + name;
-           // socket.emit('invitation_response', {status: true});
-       } else {
-           return;
-           // socket.emit('invitation_response', {status: false});
+           var url = window.location.href + 'room/' + data.roomID + '?' + name;
+           console.log(url);
+           var win = window.open(url, '_blank');
+
+           if (win) {
+               //Переходы на табы разрешены
+               win.focus();
+           } else {
+               //Если окно заблокировано
+               alert('Пожалуйста разрешите переход на страницу приватного чата');
+           }
        }
+    });
+
+    socket.on('notify_leave', function() {
+       alert('Вы были удалены из этого приватного чата администратором');
+       $('body').html('<h1>Всего наилучшего</h1><p>Вы можете вернуться в общий <a href="http://localhost:8008">чат</a> или создать свою <a href="http://localhost:8008/create">приватную комнату</ahref></p>')
+    });
+
+    socket.on('privilige', function(data) {
+        console.log('privi');
+       if (typeof data.isAdmin === 'boolean' && data.isAdmin) {
+           isAdmin = true;
+           console.log('admin here');
+       }
+       renderOnlineUsers();
     });
 
     function renderOnlineUsers(roommates) {
         var list;
         if (roommates) {
             list = $('.roommates-online').html('');
-            roommates.forEach(function(item) {
-                var str = '<li class="roommate-online"> <a class="user-link" href="#">' + item + '</a> </li>';
-                var newListElement = $(str).data('username', item);
-                addInviteHandler(newListElement, 'leave');
-                list.append(newListElement);
-            });
+            if (isAdmin) {
+                console.log(isAdmin);
+                roommates.forEach(function(item) {
+                    if (item === name) {
+                        list.append('<li class="roommate-online">' + item + '</li>');
+                    } else {
+                        var str = '<li class="roommate-online"> <a class="user-link" href="#">' + item + '</a> </li>';
+                        var newListElement = $(str).data('username', item);
+                        addInviteHandler(newListElement, 'leave');
+                        list.append(newListElement);
+                    }
+                });
+            } else {
+                roommates.forEach(function(item) {
+                    list.append('<li class="roommate-online">' + item + '</li>');
+                });
+            }
         } else {
             list = $('.users-online').html('');
             usersOnline.forEach(function(item) {
-                var srt = '';
+                var str = '';
                 var element;
                 if (window.location.href.match(/room/)) {
-                    str = '<li class="user-online"> <a class="user-link" href="#">' + item + '</a> </li>';
-                    element = $(str).data('username', item);
-                    addInviteHandler(element, 'invite');
+                    if (isAdmin) {
+                        str = '<li class="user-online"> <a class="user-link" href="#">' + item + '</a> </li>';
+                        if (item === name) str = '<li class="user-online">' + item + '</li>';
+                        element = $(str).data('username', item);
+                        addInviteHandler(element, 'invite');
+                    } else {
+                        element = $('<li class="user-online">' + item + '</li>');
+                    }
                 } else {
                     str = '<li class="user-online">' + item + '</li>';
                     element = $(str);
