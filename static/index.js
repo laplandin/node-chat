@@ -26,20 +26,24 @@ $(document).ready(function () {
     }
 
     } else  {
-        getUserName();
-        socket = io.connect(url, {query: 'name=' + name});
+        connect();
     }
 
     function getUserName() {
         while(!name) {
-            name = prompt('Ваше имя', '');
+            var name = prompt('Ваше имя', '');
             $('.js-create-link').attr('href', '/create?name=' + name);
         }
+        return name;
     }
+
+    function connect() {
+        name = getUserName();
+        socket = io.connect(url, {query: 'name=' + name});
+    };
 
     var messages = $("#messages");
     var message_txt = $("#message_text");
-    $('.chat .nick').text(name);
 
     function msg(nick, message) {
         var m = '<div class="msg">' +
@@ -73,12 +77,10 @@ $(document).ready(function () {
 
     socket.on('change_client', function(data) {
         if (data.connect) {
-            console.log('added');
             msg_system('К нам присоединился ' + data.name);
             usersOnline.push(data.name);
             renderOnlineUsers();
         } else {
-            console.log('removed');
             msg_system('Нас покинул ' + data.name);
             var i = usersOnline.indexOf(data.name);
             usersOnline.splice(i, 1);
@@ -87,7 +89,7 @@ $(document).ready(function () {
     });
 
     socket.on('get_online_users', function(data) {
-        console.log('get on connection');
+        console.log(data);
         if ($.isArray(data) && data.length) {
             usersOnline = data;
             renderOnlineUsers();
@@ -122,6 +124,20 @@ $(document).ready(function () {
            console.log('admin here');
        }
        renderOnlineUsers();
+    });
+
+    socket.on('name_invalid', function() {
+        alert('Сорян, это имя уже занято');
+        name = getUserName();
+        socket.emit('rename', {name: name});
+    });
+
+
+    socket.on('name_valid', function() {
+      console.log('valid');
+      console.log($('.chat .nick'));
+      console.log(name)
+        $('.chat .nick').text(name);
     });
 
     function renderOnlineUsers(roommates) {

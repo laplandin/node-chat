@@ -3,7 +3,7 @@ module.exports = function(app, io) {
     var state = {
         clientsOnline: [],
         rooms: [],
-        getUserNames: function(arr) {
+        getUserNames: function() {
             return this.clientsOnline.map(function(current, index, array) {
                 return current.handshake.query.name;
             });
@@ -77,34 +77,73 @@ module.exports = function(app, io) {
         } else {
 
         //for common chat
-            state.clientsOnline.push(client);
-            client.join('common');
-            client.emit('get_online_users', state.getUserNames());
+            var name = client.handshake.query.name;
+            if (checkName(name)) {
+              console.log('invalid');
 
-            client.broadcast.emit('change_client', {
-                name : client.handshake.query.name,
-                connect : true
-            });
-
-            client.on('disconnect', function(arg) {
-                var i = state.clientsOnline.indexOf(client);
-                state.clientsOnline.splice(i, 1);
-                client.broadcast.emit('change_client', {
-                    name : client.handshake.query.name,
-                    connect : false
-                });
-            });
-
-            client.on('message', function(message) {
-
-                try {
-                    client.to('common').emit('message', message);
-                    client.emit('message', message);
-                } catch (e) {
-                    console.log(e);
-                    client.disconnect();
-                }
-            });
+              client.on('rename', function(data) {
+                console.log('valid');
+                  if (checkName(data.name)) {
+                      client.emit('name_invalid', {});
+                  } else {
+                    client.emit('name_valid', {});
+                      client.handshake.query.name = data.name;
+                      addCommonListeners(client);
+                      console.log(name);
+                  };
+              });
+              client.emit('name_invalid', {});
+            } else {
+              client.emit('name_valid', {});
+              addCommonListeners(client);
+            }
         }
     });
+
+    function checkName(name) {
+        var names = state.getUserNames();
+        if (names.indexOf(name) < 0) {
+          console.log('valid check');
+          return false;
+        } else {
+          console.log('invalid check');
+          return true;
+        }
+    }
+
+    function addCommonListeners(client) {
+      var name = client.handshake.query.name;
+      state.clientsOnline.push(client);
+      console.log('fire', state.names);
+        client.join('common');
+
+
+        client.emit('get_online_users', state.getUserNames());
+
+        client.broadcast.emit('change_client', {
+            name : client.handshake.query.name,
+            connect : true
+        });
+
+        client.on('disconnect', function(arg) {
+            var i = state.clientsOnline.indexOf(client);
+            state.clientsOnline.splice(i, 1);
+            client.broadcast.emit('change_client', {
+                name : client.handshake.query.name,
+                connect : false
+            });
+        });
+
+
+        client.on('message', function(message) {
+
+            try {
+                client.to('common').emit('message', message);
+                client.emit('message', message);
+            } catch (e) {
+                console.log(e);
+                client.disconnect();
+            }
+        });
+    }
 };
